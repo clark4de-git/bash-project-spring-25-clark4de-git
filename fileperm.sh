@@ -12,6 +12,7 @@ function display_usage() {
   echo "-f <filename or directory>: Specify the input filename or directory."
   echo "-n <user of group name>: Specify the user or group"
   echo "-a <action>: Specify action to perform. Supported actions are 'owner' and 'permission'."
+  echo "If action is 'permission', input permissions must 'r,w,x,d'. Example: Read = r, Write Execute = wx, Deny = d"
   echo "-h: Display help information about the script and its usage."
 }
 
@@ -109,5 +110,28 @@ done
         fordpath=$(readlink -f $fileordirname)
         chown $userorgroupname $fordpath
     elif [[ $action == "permission" ]]; then
-    :
+        # Have user input permissions to be set
+        read -p "Enter the permissions for $userorgroupname: " perms
+        # Check if perms is valid or set to deny
+        if [[ ! $perms =~ (r|rw|rwx|rx|w|wx|x|d) ]]; then
+            echo "Error: permissions are not formatted properly."
+            exit 1
+        fi
+        # If permissions are set then update the ACL of file or directory
+        if [[ $perms =~ (r|rw|rwx|rx|w|wx|x) ]]; then
+            setfacl -m u:$userorgroupname:$perms $fileordirname
+            # Check if setting user acl fails
+            if [ $? -ne 0 ]; then
+                # Set group acl if user acl fails and hide the user command failing
+                setfacl -m g:$userorgroupname:$perms $fileordirname &>/dev/null
+            fi
+        # If deny is input then run command to remove user/group from ACL of file/directory
+        elif [[ $perms =~ (d) ]]; then
+            setfacl -x u:$userorgroupname $fileordirname
+            # Check if removing user acl fails
+            if [ $? -ne 0 ]; then
+                # Remove group acl if user acl fails and hide the user command failing
+                setfacl -x g:$userorgroupname $fileordirname &>/dev/null
+            fi
+        fi
     fi
