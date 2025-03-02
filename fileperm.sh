@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# For file/directory permissions we need:
-# 1. file/directory name which can be 1 option and argument
-# 2. user or group name that is having permissions updated or being set as owner
-
 # Function to display script usage/help information
 function display_usage() {
   echo "Usage: 
@@ -39,7 +35,7 @@ while getopts ":f:n:a:h" opt; do
         n)
             userorgroupname=$OPTARG
         ;;
-        # option o
+        # option a
         a)
             action=$OPTARG
         ;;
@@ -104,8 +100,6 @@ done
     fi
 
 # Time to perform the specified action
-# Need to try and figure out how to get full path of file or directory so that chown works
-# Also need to complete the permission action
     if [[ $action == "owner" ]]; then
         chown $userorgroupname $fileordirname 2>/dev/null
             # Check if setting user acl fails
