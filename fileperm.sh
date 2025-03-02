@@ -93,7 +93,7 @@ done
         echo "$fileordirname does not exist"
         exit 1
     fi
-
+     
 #Check if specified user exists
     if id "$userorgroupname" &>/dev/null || getent group "$userorgroupname" &>/dev/null; then
         :
@@ -103,8 +103,10 @@ done
     fi
 
 # Time to perform the specified action
+# Need to try and figure out how to get full path of file or directory so that chown works
+# Also need to complete the permission action
     if [[ $action == "owner" ]]; then
-        fordpath=$(pwd $fileordirname)
+        fordpath=$(readlink -f $fileordirname)
         chown $userorgroupname $fordpath
     elif [[ $action == "permission" ]]; then
     :
