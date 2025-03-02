@@ -7,9 +7,9 @@
 # Function to display script usage/help information
 function display_usage() {
   echo "Usage: 
-            fileperm.sh -f <filename or directory> -n <user or group name> -a <action>"
+            fileperm.sh -f <filen or directory path> -n <user or group name> -a <action>"
   echo "options:"
-  echo "-f <filename or directory>: Specify the input filename or directory."
+  echo "-f <filename or directory>: Specify the relative or absolute file or directory path."
   echo "-n <user of group name>: Specify the user or group"
   echo "-a <action>: Specify action to perform. Supported actions are 'owner' and 'permission'."
   echo "If action is 'permission', input permissions must 'r,w,x,d'. Example: Read = r, Write Execute = wx, Deny = d"
@@ -107,19 +107,24 @@ done
 # Need to try and figure out how to get full path of file or directory so that chown works
 # Also need to complete the permission action
     if [[ $action == "owner" ]]; then
-        fordpath=$(readlink -f $fileordirname)
-        chown $userorgroupname $fordpath
+        chown $userorgroupname $fileordirname 2>/dev/null
+            # Check if setting user acl fails
+            if [ $? -ne 0 ]; then
+                # Set group acl if user acl fails and hide the user command failing
+                chgrp $userorgroupname $fileordirname &>/dev/null
+            fi
     elif [[ $action == "permission" ]]; then
         # Have user input permissions to be set
         read -p "Enter the permissions for $userorgroupname: " perms
         # Check if perms is valid or set to deny
-        if [[ ! $perms =~ (r|rw|rwx|rx|w|wx|x|d) ]]; then
+        if [[ ! $perms == "r" || ! $perms == "rw" || ! $perms == "rwx" || ! $perms == "rx" || ! $perms =="w" || 
+              ! $perms == "wx" || ! $perms == "x" || ! $perms == "d" ]]; then
             echo "Error: permissions are not formatted properly."
             exit 1
         fi
         # If permissions are set then update the ACL of file or directory
         if [[ $perms =~ (r|rw|rwx|rx|w|wx|x) ]]; then
-            setfacl -m u:$userorgroupname:$perms $fileordirname
+            setfacl -m u:$userorgroupname:$perms $fileordirname 2>/dev/null
             # Check if setting user acl fails
             if [ $? -ne 0 ]; then
                 # Set group acl if user acl fails and hide the user command failing
@@ -127,7 +132,7 @@ done
             fi
         # If deny is input then run command to remove user/group from ACL of file/directory
         elif [[ $perms =~ (d) ]]; then
-            setfacl -x u:$userorgroupname $fileordirname
+            setfacl -x u:$userorgroupname $fileordirname 2>/dev/null
             # Check if removing user acl fails
             if [ $? -ne 0 ]; then
                 # Remove group acl if user acl fails and hide the user command failing
